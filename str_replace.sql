@@ -47,17 +47,18 @@ iteration: LOOP
 	IF iterator > string_search_items THEN
 		LEAVE iteration;
 	END IF;
-    
+
 	SET iterator = iterator + 1;
     
-    SET replace_from = substring_index(substring_index(string_search, ws, iterator), ws, -1);
+    	SET replace_from = substring_index(substring_index(string_search, ws, iterator), ws, -1);
 	SET replace_to = substring_index(substring_index(string_replace, ws, iterator), ws, -1);
-    SET replace_from_length = char_length(replace_from);
-    SET replace_to_ghost = repeat(ghost, char_length(replace_to));
+	SET replace_from_length = char_length(replace_from);
+	SET replace_to_ghost = repeat(ghost, char_length(replace_to));
     
-    replacing: LOOP 
+    	replacing: LOOP
+	
 		SET pos = LOCATE(replace_from, string_test);
-        IF pos = 0 THEN
+        	IF pos = 0 THEN
 			LEAVE replacing;
 		END IF;
 
