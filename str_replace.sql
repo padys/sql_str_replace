@@ -1,61 +1,72 @@
-CREATE DEFINER=`user`@`localhost` FUNCTION `str_replace`(string_search TEXT CHARSET utf8, string_replace TEXT CHARSET utf8, string_subject TEXT CHARSET utf8) RETURNS text CHARSET utf8
+CREATE DEFINER=`root`@`localhost` FUNCTION `str_replace`(string_search TEXT CHARSET utf8, string_replace TEXT CHARSET utf8, string_subject TEXT CHARSET utf8) RETURNS text CHARSET utf8
 BEGIN
-    DECLARE string_output TEXT CHARSET utf8 default '';
-    
-    DECLARE iterator_index INT default 1;
-    DECLARE iterator_index_max_value INT default 0;
-    DECLARE string_search_chunk TEXT CHARSET utf8; 
-    DECLARE string_replace_chunk TEXT CHARSET utf8; 
-    DECLARE safe_tokenizing_character CHAR(16);
-    DECLARE safe_tokenizing_character_found BOOL default FALSE;
-    
-    SET iterator_index_max_value = 1 + CHAR_LENGTH(string_search) - CHAR_LENGTH( REPLACE(string_search, ",", "") );
-    SET string_output = string_subject;
-    
-    generate_safe_tokenizing_character: LOOP 
 
-        IF safe_tokenizing_character_found IS TRUE THEN
-            LEAVE generate_safe_tokenizing_character;
-        END IF;
-        
-        SET safe_tokenizing_character = RAND();
-        
-        IF INSTR(string_subject, safe_tokenizing_character) = 0 THEN
-            SET safe_tokenizing_character_found = TRUE;
-        END IF;
-    
-    END LOOP generate_safe_tokenizing_character;
-    
-    tokenize: LOOP
-    
-        IF iterator_index > iterator_index_max_value THEN
-            SET iterator_index = 1;
-            LEAVE tokenize;
-        END IF;
-        
-        SET string_search_chunk = SUBSTRING_INDEX( SUBSTRING_INDEX(string_search, ',', iterator_index), ',', -1 );
-        SET string_replace_chunk = CONCAT('<', safe_tokenizing_character, iterator_index, safe_tokenizing_character, '>');
+-- string_search/string_replace items separator
+DECLARE ws TEXT CHARSET utf8 default ',';
+-- ghost letter - one char that can't exist in string_subject
+DECLARE ghost TEXT CHARSET utf8 default '\0';
 
-        SET string_output = REPLACE(string_output, string_search_chunk, string_replace_chunk);
+-- string in which I will search items and replace them with ghosts
+DECLARE string_test TEXT CHARSET utf8 default '';
+-- result string
+DECLARE string_output TEXT CHARSET utf8 default '';
 
-        SET iterator_index = iterator_index + 1;
-    
-    END LOOP tokenize;
-    
-    replace_tokenized: LOOP
-    
-        IF iterator_index > iterator_index_max_value THEN
-            LEAVE replace_tokenized;
-        END IF;
-        
-        SET string_search_chunk = CONCAT('<', safe_tokenizing_character, iterator_index, safe_tokenizing_character, '>');
-        SET string_replace_chunk = SUBSTRING_INDEX( SUBSTRING_INDEX(string_replace, ',', iterator_index), ',', -1 );
+-- how many items to search
+DECLARE string_search_items INT DEFAULT 0;
+-- how many items to replace
+DECLARE string_replace_items INT DEFAULT 0;
+-- iterator
+DECLARE iterator INT DEFAULT 0;
+-- position of replacement 
+DECLARE pos INT DEFAULT 0;
 
-        SET string_output = REPLACE(string_output, string_search_chunk, string_replace_chunk);
+-- one item to search
+DECLARE replace_from TEXT CHARSET utf8 default '';
+-- corresponding item to replace
+DECLARE replace_to TEXT CHARSET utf8 default '';
 
-        SET iterator_index = iterator_index + 1;
-        
-    END LOOP replace_tokenized;
+-- length of item to search
+DECLARE replace_from_length INT DEFAULT 0;
+-- replacement in string_test
+DECLARE replace_to_ghost TEXT CHARSET utf8 default '';
+
+SET string_test = string_subject;
+SET string_output = string_subject;
+
+SET string_search_items = char_length(string_search)-char_length(replace(string_search, ws, ''));
+SET string_replace_items = char_length(string_replace)-char_length(replace(string_replace, ws, ''));
+
+-- lengths of string_search and string_replace have to fit together 
+IF string_search_items > string_replace_items THEN
+	SET string_replace = concat(string_replace, REPEAT(ws, string_search_items-string_replace_items));
+END IF;
+
+-- iteration over string_search items
+iteration: LOOP 
+
+	IF iterator > string_search_items THEN
+		LEAVE iteration;
+	END IF;
     
-    RETURN string_output;
+	SET iterator = iterator + 1;
+    
+    SET replace_from = substring_index(substring_index(string_search, ws, iterator), ws, -1);
+	SET replace_to = substring_index(substring_index(string_replace, ws, iterator), ws, -1);
+    SET replace_from_length = char_length(replace_from);
+    SET replace_to_ghost = repeat(ghost, char_length(replace_to));
+    
+    replacing: LOOP 
+		SET pos = LOCATE(replace_from, string_test);
+        IF pos = 0 THEN
+			LEAVE replacing;
+		END IF;
+
+		SET string_output = insert(string_output, pos, replace_from_length, replace_to);
+		SET string_test = insert(string_test, pos, replace_from_length, replace_to_ghost);
+		
+	END LOOP replacing;
+    
+END LOOP iteration;
+
+RETURN string_output;
 END
