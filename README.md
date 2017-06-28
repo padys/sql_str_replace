@@ -69,17 +69,4 @@ select str_replace('a,b', 'b,c', 'abca');
 
 step by step:
 
-  1. generate_safe_tokenizing_character:
-
-    output: `0.45348525`
-  
-  2. tokenize:
-  
-    output: `'<0.4534852510.45348525><0.4534852520.45348525>c<0.4534852510.45348525>'`
-  
-  3. replace_tokenized:
-
-    output: `'bccb'`
-
-
-final output: `'bccb'`
+// TODO
