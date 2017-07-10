@@ -62,7 +62,7 @@ output: `'B'`
 
 ---
 
-# Some benchmarks tests
+# Some benchmarks
 
 To test execution time of functions, one can use [`BENCHMARK(count,expr)`](https://dev.mysql.com/doc/refman/5.5/en/information-functions.html#function_benchmark):
 
